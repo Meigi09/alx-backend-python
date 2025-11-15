@@ -22,7 +22,7 @@ class TestGithubOrgClient(unittest.TestCase):
     def test_org(self, org_name, mock_get_json):
         """Test that GithubOrgClient.org returns correct value"""
         # Set up the mock
-        test_payload = {"org": org_name}
+        test_payload = {"login": org_name, "id": 123}
         mock_get_json.return_value = test_payload
 
         # Create client instance and call org property
@@ -30,7 +30,8 @@ class TestGithubOrgClient(unittest.TestCase):
         result = client.org
 
         # Assertions
-        mock_get_json.assert_called_once_with(f"https://api.github.com/orgs/{org_name}")
+        url = f"https://api.github.com/orgs/{org_name}"
+        mock_get_json.assert_called_once_with(url)
         self.assertEqual(result, test_payload)
 
     def test_public_repos_url(self):
@@ -83,6 +84,9 @@ class TestGithubOrgClient(unittest.TestCase):
         [
             ({"license": {"key": "my_license"}}, "my_license", True),
             ({"license": {"key": "other_license"}}, "my_license", False),
+            ({"license": {"key": "my_license"}}, "other_license", False),
+            ({}, "my_license", False),
+            ({"license": {}}, "my_license", False),
         ]
     )
     def test_has_license(self, repo, license_key, expected):
@@ -114,7 +118,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         def side_effect(url):
             if url == "https://api.github.com/orgs/google":
                 return cls.org_payload
-            elif url == "https://api.github.com/orgs/google/repos":
+            elif url == cls.org_payload.get("repos_url"):
                 return cls.repos_payload
             return None
 
